@@ -152,6 +152,12 @@ func v4HandlersSetup(muxRouter *mux.Router,
 	muxRouter.HandleFunc(v4.ContainerAssociationPath, v4.ContainerAssociationHandler(state))
 }
 
+
+//GraphQL Handler Setup
+//func gQLHandlerSetup(muxrouter *mux.Router, state dockerstate.TaskEngineState) {
+// 	muxrouter.HandleFunc("/graphql", )
+//}
+
 // ServeTaskHTTPEndpoint serves task/container metadata, task/container stats, and IAM Role Credentials
 // for tasks being managed by the agent.
 func ServeTaskHTTPEndpoint(

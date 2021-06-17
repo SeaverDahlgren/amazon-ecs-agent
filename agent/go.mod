@@ -26,6 +26,7 @@ require (
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/mux v1.6.2
 	github.com/gorilla/websocket v1.2.0
+	github.com/graphql-go/graphql v0.7.9 // indirect
 	github.com/hectane/go-acl v0.0.0-20190604041725-da78bae5fc95
 	github.com/konsorten/go-windows-terminal-sequences v1.0.1 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
