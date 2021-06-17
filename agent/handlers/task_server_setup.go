@@ -23,6 +23,7 @@ import (
 	"github.com/aws/amazon-ecs-agent/agent/config"
 	"github.com/aws/amazon-ecs-agent/agent/credentials"
 	"github.com/aws/amazon-ecs-agent/agent/engine/dockerstate"
+	GQL "github.com/aws/amazon-ecs-agent/agent/handlers/GQL"
 	handlersutils "github.com/aws/amazon-ecs-agent/agent/handlers/utils"
 	v1 "github.com/aws/amazon-ecs-agent/agent/handlers/v1"
 	v2 "github.com/aws/amazon-ecs-agent/agent/handlers/v2"
@@ -70,6 +71,8 @@ func taskServerSetup(credentialsManager credentials.Manager,
 	v3HandlersSetup(muxRouter, state, ecsClient, statsEngine, cluster, availabilityZone, containerInstanceArn)
 
 	v4HandlersSetup(muxRouter, state, ecsClient, statsEngine, cluster, availabilityZone, containerInstanceArn)
+
+	GQLHandlerSetup(muxRouter, state)
 
 	limiter := tollbooth.NewLimiter(int64(steadyStateRate), nil)
 	limiter.SetOnLimitReached(handlersutils.LimitReachedHandler(auditLogger))
@@ -154,9 +157,9 @@ func v4HandlersSetup(muxRouter *mux.Router,
 
 
 //GraphQL Handler Setup
-//func gQLHandlerSetup(muxrouter *mux.Router, state dockerstate.TaskEngineState) {
-// 	muxrouter.HandleFunc("/graphql", )
-//}
+func GQLHandlerSetup(muxrouter *mux.Router, state dockerstate.TaskEngineState) {
+	muxrouter.HandleFunc("/graphql", GQL.ContainerMetadataHandler(state))
+}
 
 // ServeTaskHTTPEndpoint serves task/container metadata, task/container stats, and IAM Role Credentials
 // for tasks being managed by the agent.
