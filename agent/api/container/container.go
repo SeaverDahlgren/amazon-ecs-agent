@@ -934,6 +934,20 @@ func (c *Container) InjectV4MetadataEndpoint() {
 		fmt.Sprintf(MetadataURIFormatV4, c.V3EndpointID)
 }
 
+// InjectGQLMetadataEndpoint injects the GQL metadata endpoint as an environment variable for a container
+func (c *Container) InjectGQLMetadataEndpoint() {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	// don't assume that the environment variable map has been initialized by others
+	if c.Environment == nil {
+		c.Environment = make(map[string]string)
+	}
+
+	c.Environment["GQL_META_URI"] =
+		fmt.Sprintf("http://169.254.170.2/graphql/%s", c.V3EndpointID)
+}
+
 // ShouldCreateWithSSMSecret returns true if this container needs to get secret
 // value from SSM Parameter Store
 func (c *Container) ShouldCreateWithSSMSecret() bool {

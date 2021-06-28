@@ -35,6 +35,7 @@ import (
 	"github.com/cihub/seelog"
 	"github.com/didip/tollbooth"
 	"github.com/gorilla/mux"
+	GQLhandler "github.com/graphql-go/handler"
 )
 
 const (
@@ -72,7 +73,7 @@ func taskServerSetup(credentialsManager credentials.Manager,
 
 	v4HandlersSetup(muxRouter, state, ecsClient, statsEngine, cluster, availabilityZone, containerInstanceArn)
 
-	GQLHandlerSetup(muxRouter, state)
+	GQLHandlerSetup(muxRouter,state, ecsClient, statsEngine, cluster, availabilityZone, containerInstanceArn)
 
 	limiter := tollbooth.NewLimiter(int64(steadyStateRate), nil)
 	limiter.SetOnLimitReached(handlersutils.LimitReachedHandler(auditLogger))
@@ -137,7 +138,7 @@ func v3HandlersSetup(muxRouter *mux.Router,
 	muxRouter.HandleFunc(v3.ContainerAssociationPath, v3.ContainerAssociationHandler(state))
 }
 
-// v4HandlerSetup adda all handlers in v4 package to the mux router
+// v4HandlerSetup adds all handlers in v4 package to the mux router
 func v4HandlersSetup(muxRouter *mux.Router,
 	state dockerstate.TaskEngineState,
 	ecsClient api.ECSClient,
@@ -157,10 +158,33 @@ func v4HandlersSetup(muxRouter *mux.Router,
 
 
 //GraphQL Handler Setup
-func GQLHandlerSetup(muxrouter *mux.Router, state dockerstate.TaskEngineState) {
-	muxrouter.HandleFunc("/graphql", GQL.ContainerMetadataHandler(state))
+func GQLHandlerSetup(muxrouter *mux.Router,
+	state dockerstate.TaskEngineState,
+	ecsClient api.ECSClient,
+	statsEngine stats.Engine,
+	cluster string,
+	availabilityZone string,
+	containerInstanceArn string) {
+	schema := GQL.CreateSchema(state, ecsClient, statsEngine, cluster, availabilityZone, containerInstanceArn)
+	h := GQLhandler.New(&GQLhandler.Config{
+		Schema: &schema,
+		Pretty: true,        // TODO: Pretty must be false
+	})
+
+	muxrouter.HandleFunc(GQL.ContainerMetadataPath, ServeGraphQL(h))
 }
 
+func ServeGraphQL(GQLhandler *GQLhandler.Handler) func(w http.ResponseWriter, r *http.Request){
+	return func(w http.ResponseWriter, r *http.Request) {
+		v3EndpointID, ok := handlersutils.GetMuxValueFromRequest(r, v3.V3EndpointIDMuxName)
+		if !ok {
+			seelog.Errorf("Unable to get v3 endpoint ID from request")
+		}
+		ctx := context.WithValue(r.Context(), "V3EndpointID", v3EndpointID)
+
+		GQLhandler.ContextHandler(ctx, w, r)
+	}
+}
 // ServeTaskHTTPEndpoint serves task/container metadata, task/container stats, and IAM Role Credentials
 // for tasks being managed by the agent.
 func ServeTaskHTTPEndpoint(
